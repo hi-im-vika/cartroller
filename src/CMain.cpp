@@ -108,10 +108,23 @@ void CMain::draw() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_QUIT)
-            _do_exit = true;
-        if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(_window))
-            _do_exit = true;
+        switch (event.type) {
+            case SDL_EVENT_QUIT:
+                spdlog::info("Quit");
+                _do_exit = true;
+                break;
+            case SDL_EVENT_GAMEPAD_ADDED:
+                spdlog::info("GC added");
+                break;
+            case SDL_EVENT_GAMEPAD_REMOVED:
+                spdlog::info("GC removed");
+                break;
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+            case SDL_EVENT_GAMEPAD_BUTTON_UP:
+            case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+            default:
+                break;
+        }
     }
 
     // [If using SDL_MAIN_USE_CALLBACKS: all code below would likely be your SDL_AppIterate() function]
