@@ -81,13 +81,10 @@ CMain::CMain() {
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Our state
-    _show_demo_window = true;
+    _show_demo_window = false;
     _show_another_window = false;
 
     // Init some variables
-    _clear_colour = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    _imgui_float = 0.0f;
-    _imgui_ctr = 0;
 }
 
 CMain::~CMain() {
@@ -174,14 +171,6 @@ void CMain::draw() {
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
-    ImGui::Checkbox("Another Window", &_show_another_window);
-
-    ImGui::SliderFloat("float", &_imgui_float, 0.0f, 1.0f);     // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::ColorEdit3("clear color", (float *) &_clear_colour); // Edit 3 floats representing a color
-
-    if (ImGui::Button("Button")) _imgui_ctr++;                  // Buttons return true when clicked (most widgets return true when edited/activated)
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", _imgui_ctr);
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::End();
@@ -198,9 +187,6 @@ void CMain::draw() {
     // Rendering
     ImGui::Render();
     glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
-    glClearColor(_clear_colour.x * _clear_colour.w, _clear_colour.y * _clear_colour.w,
-                 _clear_colour.z * _clear_colour.w, _clear_colour.w);
-    glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(_window);
     std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(1));

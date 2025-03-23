@@ -35,9 +35,6 @@ private:
     // imgui
     bool _show_demo_window;
     bool _show_another_window;
-    ImVec4 _clear_colour;
-    float _imgui_float;
-    int _imgui_ctr;
 
     std::string _text;
     unsigned int _count;
