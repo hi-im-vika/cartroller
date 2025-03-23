@@ -151,34 +151,18 @@ void CMain::draw() {
     // control settings
     ImGui::SeparatorText("Controls");
     ImGui::Text("Choose gamepad:");
-    int num_joysticks;
-    SDL_JoystickID* joysticks = SDL_GetGamepads(&num_joysticks);
-    std::vector<std::string> joystick_names;
-
-    // if joysticks are connected
-    if (num_joysticks) {
-        // get all joystick names
-        for (int i = 0; i < num_joysticks; i++) {
-            joystick_names.emplace_back(SDL_GetGamepadName(SDL_GetGamepadFromID(joysticks[i])));
-        }
-        // if no gc assigned already, assign first one
-        if (!_gp) _gp = SDL_GetGamepadFromID(joysticks[0]);
-    } else {
-        // if nothing connected, set gc to nullptr
-        _gp = nullptr;
-    }
 
     int item_selected_idx = 0;
-    std::string combo_preview_value = num_joysticks ? SDL_GetGamepadName(_gp) : "No gamepads connected";
+    std::string combo_preview_value = _num_joysticks ? SDL_GetGamepadName(SDL_GetGamepadFromID(_jss[0])) : "No gamepads connected";
 
-    ImGui::BeginDisabled(!num_joysticks);
+    ImGui::BeginDisabled(!_num_joysticks);
     ImGui::PushItemWidth(-FLT_MIN);
     if (ImGui::BeginCombo("##gpselect", combo_preview_value.c_str())) {
-        for (int i = 0; i < num_joysticks; i++) {
+        for (int i = 0; i < _num_joysticks; i++) {
             const bool is_selected = (item_selected_idx == i);
-            if (ImGui::Selectable(SDL_GetGamepadName(SDL_GetGamepadFromID(joysticks[i])), is_selected)) {
+            if (ImGui::Selectable(SDL_GetGamepadName(SDL_GetGamepadFromID(_jss[i])), is_selected)) {
                 item_selected_idx = i;
-                _gp = SDL_GetGamepadFromID(joysticks[i]);
+                _gp = SDL_GetGamepadFromID(_jss[i]);
             }
             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
             if (is_selected) ImGui::SetItemDefaultFocus();
