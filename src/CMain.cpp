@@ -115,9 +115,12 @@ void CMain::draw() {
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
                 spdlog::info("Gamepad added");
+                update_gamepad_list();
                 break;
             case SDL_EVENT_GAMEPAD_REMOVED:
                 spdlog::info("Gamepad removed");
+                SDL_CloseGamepad(SDL_GetGamepadFromID(event.gdevice.which));
+                update_gamepad_list();
                 break;
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
@@ -217,6 +220,18 @@ void CMain::draw() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(_window);
     std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(1));
+}
+
+void CMain::update_gamepad_list() {
+    _jss = SDL_GetGamepads(&_num_joysticks);
+    // if joysticks are connected
+    if (_num_joysticks) {
+        // if no gp assigned already, open first one
+        if (!_gp) _gp = SDL_OpenGamepad(_jss[0]);
+    } else {
+        // if nothing connected, set gp to nullptr
+        _gp = nullptr;
+    }
 }
 
 int main(int argc, char *argv[]) {
