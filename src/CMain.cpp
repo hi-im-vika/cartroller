@@ -114,10 +114,10 @@ void CMain::draw() {
                 _do_exit = true;
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
-                spdlog::info("GC added");
+                spdlog::info("Gamepad added");
                 break;
             case SDL_EVENT_GAMEPAD_REMOVED:
-                spdlog::info("GC removed");
+                spdlog::info("Gamepad removed");
                 break;
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
