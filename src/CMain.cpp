@@ -73,6 +73,8 @@ CMain::CMain() {
     (void) io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigDockingTransparentPayload = true;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -152,6 +154,9 @@ void CMain::draw() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+
+    // Dock windows inside viewport
+    ImGui::DockSpaceOverViewport();
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (_show_demo_window) ImGui::ShowDemoWindow(&_show_demo_window);

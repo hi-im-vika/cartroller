@@ -2,7 +2,7 @@
   "dependencies" : [ "imgui", {
     "name" : "imgui",
     "version>=" : "1.91.9",
-    "features" : [ "sdl3-binding", "opengl3-binding" ]
+    "features" : [ "sdl3-binding", "opengl3-binding", "docking-experimental" ]
   }, {
     "name" : "spdlog",
     "version>=" : "1.15.1"
