@@ -26,6 +26,9 @@ private:
     SDL_Window* _window;
     SDL_GLContext _gl_context;
 
+    // control
+    SDL_Gamepad *_gp;
+
     // imgui
     bool _show_demo_window;
     bool _show_another_window;
