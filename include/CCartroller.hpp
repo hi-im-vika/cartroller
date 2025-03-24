@@ -1,5 +1,5 @@
 /**
- * CMain.hpp - new file
+ * CCartroller.hpp - new file
  * 2025-03-20
  * vika <https://github.com/hi-im-vika>
  */
@@ -20,7 +20,7 @@
 
 #include "CBase.hpp"
 
-class CMain : public CBase {
+class CCartroller : public CBase {
 private:
     // SDL
     SDL_Window* _window;
@@ -41,8 +41,8 @@ private:
     std::string _text;
     unsigned int _count;
 public:
-    CMain();
-    ~CMain();
+    CCartroller();
+    ~CCartroller();
 
     void update() override;
     void draw() override;

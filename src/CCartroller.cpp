@@ -1,12 +1,12 @@
 /**
- * CMain.cpp - new file
+ * CCartroller.cpp - new file
  * 2025-03-20
  * vika <https://github.com/hi-im-vika>
  */
 
-#include "../include/CMain.hpp"
+#include "../include/CCartroller.hpp"
 
-CMain::CMain() {
+CCartroller::CCartroller() {
     // Setup SDL
     // [If using SDL_MAIN_USE_CALLBACKS: all code below until the main loop starts would likely be your SDL_AppInit() function]
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
@@ -90,7 +90,7 @@ CMain::CMain() {
     _gp_dir = std::vector<double>(3);
 }
 
-CMain::~CMain() {
+CCartroller::~CCartroller() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
@@ -103,7 +103,7 @@ CMain::~CMain() {
     SDL_Quit();
 }
 
-void CMain::update() {
+void CCartroller::update() {
 //    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO)) {
 //        spdlog::info(SDL_GetGamepadSensorDataRate(_gp,SDL_SENSOR_GYRO));
 //        float data[3] = { 0.0f };
@@ -131,7 +131,13 @@ void CMain::update() {
     }
 }
 
-void CMain::draw() {
+void CCartroller::draw() {
+    // Poll and handle events (inputs, window resize, etc.)
+    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+    // [If using SDL_MAIN_USE_CALLBACKS: call ImGui_ImplSDL3_ProcessEvent() from your SDL_AppEvent() function]
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
@@ -222,7 +228,7 @@ void CMain::draw() {
 }
 
 int main(int argc, char *argv[]) {
-    CMain c = CMain();
+    CCartroller c = CCartroller();
     c.run();
     return 0;
 }
