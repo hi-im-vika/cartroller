@@ -87,6 +87,7 @@ CMain::CMain() {
     // Init some variables
     _gp_vals = std::vector<double>(4);
     _gp_sens = std::vector<double>(3);
+    _gp_dir = std::vector<double>(3);
 }
 
 CMain::~CMain() {
@@ -94,13 +95,40 @@ CMain::~CMain() {
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
+    if (_gp) {
+        SDL_CloseGamepad(_gp);
+    }
     SDL_GL_DestroyContext(_gl_context);
     SDL_DestroyWindow(_window);
     SDL_Quit();
 }
 
 void CMain::update() {
-    _count++;
+//    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO)) {
+//        spdlog::info(SDL_GetGamepadSensorDataRate(_gp,SDL_SENSOR_GYRO));
+//        float data[3] = { 0.0f };
+//        if (SDL_GetGamepadSensorData(_gp,SDL_SENSOR_GYRO,data,3)) {
+//            _gp_sens = {data[0], data[1], data[2]};
+//        }
+//    }
+    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_sens_evts.empty())) {
+        static SDL_GamepadSensorEvent last_evt;
+        static SDL_GamepadSensorEvent this_evt;
+        this_evt = _sens_evts.front();
+        _sens_evts.pop();
+        auto delta_t = (double) (this_evt.sensor_timestamp - last_evt.sensor_timestamp) * 1E-9;
+        if (delta_t != 0.0f) {
+            double delta_x = (this_evt.data[0] * delta_t);
+            double delta_y = (this_evt.data[2] * delta_t);
+            double delta_z = (this_evt.data[1] * delta_t);
+            if (abs(delta_x) >= 0.0001) _gp_dir.at(0) += delta_x;
+            if (abs(delta_y) >= 0.0001) _gp_dir.at(2) += delta_y;
+            if (abs(delta_z) >= 0.0001) _gp_dir.at(1) += delta_z;
+        }
+        last_evt = this_evt;
+    } else {
+        std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
+    }
 }
 
 void CMain::draw() {
@@ -123,9 +151,10 @@ void CMain::draw() {
                 }
                 break;
             case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
-                spdlog::info("Gamepad sensor");
                 if (event.gsensor.sensor == SDL_SENSOR_GYRO) {
                     _gp_sens = {event.gsensor.data[0],event.gsensor.data[1],event.gsensor.data[2]};
+                    _sens_evts.emplace(event.gsensor);
+                    spdlog::info(event.gsensor.sensor_timestamp);
                 }
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
@@ -161,9 +190,13 @@ void CMain::draw() {
             SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_GYRO,true);
     }
 
-    ImGui::Text("Accel: %+.5f", _gp_sens.at(0));
-    ImGui::Text("Accel: %+.5f", _gp_sens.at(1));
-    ImGui::Text("Accel: %+.5f", _gp_sens.at(2));
+    ImGui::Text("Accel X: %+.5f", _gp_sens.at(0));
+    ImGui::Text("Accel Y: %+.5f", _gp_sens.at(2));
+    ImGui::Text("Accel Z: %+.5f", _gp_sens.at(1));
+
+    ImGui::Text("Dir X: %+.5f", _gp_dir.at(0));
+    ImGui::Text("Dir Y: %+.5f", _gp_dir.at(2));
+    ImGui::Text("Dir Z: %+.5f", _gp_dir.at(1));
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
@@ -185,7 +218,7 @@ void CMain::draw() {
     glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(_window);
-    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(1));
+    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
 }
 
 int main(int argc, char *argv[]) {
