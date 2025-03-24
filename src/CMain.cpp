@@ -85,6 +85,8 @@ CMain::CMain() {
     _show_another_window = false;
 
     // Init some variables
+    _gp_vals = std::vector<double>(4);
+    _gp_sens = std::vector<double>(3);
 }
 
 CMain::~CMain() {
@@ -112,13 +114,19 @@ void CMain::draw() {
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
                 spdlog::info("Gamepad added");
-                update_gamepad_list();
+                _gp = SDL_OpenGamepad(event.gdevice.which);
                 break;
             case SDL_EVENT_GAMEPAD_REMOVED:
                 spdlog::info("Gamepad removed");
-                SDL_CloseGamepad(SDL_GetGamepadFromID(event.gdevice.which));
-                update_gamepad_list();
+                if (SDL_GetGamepadFromID(event.gdevice.which)) {
+                    SDL_CloseGamepad(SDL_GetGamepadFromID(event.gdevice.which));
+                }
                 break;
+            case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
+                spdlog::info("Gamepad sensor");
+                if (event.gsensor.sensor == SDL_SENSOR_GYRO) {
+                    _gp_sens = {event.gsensor.data[0],event.gsensor.data[1],event.gsensor.data[2]};
+                }
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
             case SDL_EVENT_GAMEPAD_AXIS_MOTION:
@@ -147,27 +155,15 @@ void CMain::draw() {
 
     // control settings
     ImGui::SeparatorText("Controls");
-    ImGui::Text("Choose gamepad:");
 
-    int item_selected_idx = 0;
-    std::string combo_preview_value = _num_joysticks ? SDL_GetGamepadName(SDL_GetGamepadFromID(_jss[0])) : "No gamepads connected";
-
-    ImGui::BeginDisabled(!_num_joysticks);
-    ImGui::PushItemWidth(-FLT_MIN);
-    if (ImGui::BeginCombo("##gpselect", combo_preview_value.c_str())) {
-        for (int i = 0; i < _num_joysticks; i++) {
-            const bool is_selected = (item_selected_idx == i);
-            if (ImGui::Selectable(SDL_GetGamepadName(SDL_GetGamepadFromID(_jss[i])), is_selected)) {
-                item_selected_idx = i;
-                _gp = SDL_GetGamepadFromID(_jss[i]);
-            }
-            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-            if (is_selected) ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
+    if (_gp) {
+        if (SDL_GamepadHasSensor(_gp,SDL_SENSOR_GYRO) && !SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO))
+            SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_GYRO,true);
     }
-    ImGui::PopItemWidth();
-    ImGui::EndDisabled();
+
+    ImGui::Text("Accel: %+.5f", _gp_sens.at(0));
+    ImGui::Text("Accel: %+.5f", _gp_sens.at(1));
+    ImGui::Text("Accel: %+.5f", _gp_sens.at(2));
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
@@ -190,18 +186,6 @@ void CMain::draw() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(_window);
     std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(1));
-}
-
-void CMain::update_gamepad_list() {
-    _jss = SDL_GetGamepads(&_num_joysticks);
-    // if joysticks are connected
-    if (_num_joysticks) {
-        // if no gp assigned already, open first one
-        if (!_gp) _gp = SDL_OpenGamepad(_jss[0]);
-    } else {
-        // if nothing connected, set gp to nullptr
-        _gp = nullptr;
-    }
 }
 
 int main(int argc, char *argv[]) {

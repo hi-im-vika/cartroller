@@ -27,10 +27,10 @@ private:
     SDL_GLContext _gl_context;
 
     // control
-    SDL_JoystickID* _jss;
     SDL_Gamepad* _gp;
-    int _num_joysticks;
-    std::vector<std::string> _js_names;
+
+    std::vector<double> _gp_vals;
+    std::vector<double> _gp_sens;
 
     // imgui
     bool _show_demo_window;
@@ -38,8 +38,6 @@ private:
 
     std::string _text;
     unsigned int _count;
-
-    void update_gamepad_list();
 public:
     CMain();
     ~CMain();
