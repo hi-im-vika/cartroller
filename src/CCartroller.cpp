@@ -132,12 +132,7 @@ void CCartroller::update() {
 }
 
 void CCartroller::draw() {
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-    // [If using SDL_MAIN_USE_CALLBACKS: call ImGui_ImplSDL3_ProcessEvent() from your SDL_AppEvent() function]
+    // poll and handle events
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
@@ -170,7 +165,7 @@ void CCartroller::draw() {
         }
     }
 
-    // [If using SDL_MAIN_USE_CALLBACKS: all code below would likely be your SDL_AppIterate() function]
+    // don't do anything if window minimized
     if (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) {
         std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(10));
         return;
@@ -181,6 +176,7 @@ void CCartroller::draw() {
     ImGui::NewFrame();
     ImGui::DockSpaceOverViewport(0,nullptr,ImGuiDockNodeFlags_PassthruCentralNode);
     ImGuiIO &io = ImGui::GetIO();
+    {
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (_show_demo_window) ImGui::ShowDemoWindow(&_show_demo_window);
@@ -217,6 +213,8 @@ void CCartroller::draw() {
         if (ImGui::Button("Close Me"))
             _show_another_window = false;
         ImGui::End();
+    }
+
     }
 
     // Rendering
