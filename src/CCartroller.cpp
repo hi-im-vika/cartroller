@@ -179,7 +179,7 @@ void CCartroller::draw() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
-    ImGui::DockSpaceOverViewport();
+    ImGui::DockSpaceOverViewport(0,nullptr,ImGuiDockNodeFlags_PassthruCentralNode);
     ImGuiIO &io = ImGui::GetIO();
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -222,6 +222,8 @@ void CCartroller::draw() {
     // Rendering
     ImGui::Render();
     glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
+    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(_window);
     std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
