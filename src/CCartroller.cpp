@@ -158,7 +158,7 @@ void CCartroller::draw() {
                 if (event.gsensor.sensor == SDL_SENSOR_GYRO) {
                     _gp_sens = {event.gsensor.data[0],event.gsensor.data[1],event.gsensor.data[2]};
                     _sens_evts.emplace(event.gsensor);
-                    spdlog::info(event.gsensor.sensor_timestamp);
+//                    spdlog::info(event.gsensor.sensor_timestamp);
                 }
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
