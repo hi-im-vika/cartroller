@@ -121,9 +121,12 @@ void CCartroller::update() {
             double delta_x = (this_evt.data[0] * delta_t);
             double delta_y = (this_evt.data[2] * delta_t);
             double delta_z = (this_evt.data[1] * delta_t);
-            if (abs(delta_x) >= 0.0001) _gp_dir.at(0) += delta_x;
-            if (abs(delta_y) >= 0.0001) _gp_dir.at(2) += delta_y;
-            if (abs(delta_z) >= 0.0001) _gp_dir.at(1) += delta_z;
+            _gp_dir.at(0) = delta_x;
+            _gp_dir.at(2) = delta_y;
+            _gp_dir.at(1) = delta_z;
+//            if (abs(delta_x) >= 0.0001) _gp_dir.at(0) += delta_x;
+//            if (abs(delta_y) >= 0.0001) _gp_dir.at(2) += delta_y;
+//            if (abs(delta_z) >= 0.0001) _gp_dir.at(1) += delta_z;
         }
         last_evt = this_evt;
     } else {
