@@ -33,6 +33,9 @@ private:
     std::vector<double> _gp_sens;
     std::vector<double> _gp_dir;
     std::queue<SDL_GamepadSensorEvent> _sens_evts;
+    std::vector<std::vector<double>> _log_values;
+    std::vector<u_int64_t> _log_timestamps;
+    bool _do_log;
 
     // imgui
     bool _show_demo_window;

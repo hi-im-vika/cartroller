@@ -88,6 +88,8 @@ CCartroller::CCartroller() {
     _gp_vals = std::vector<double>(4);
     _gp_sens = std::vector<double>(3);
     _gp_dir = std::vector<double>(3);
+
+    _do_log = false;
 }
 
 CCartroller::~CCartroller() {
@@ -127,6 +129,10 @@ void CCartroller::update() {
 //            if (abs(delta_x) >= 0.0001) _gp_dir.at(0) += delta_x;
 //            if (abs(delta_y) >= 0.0001) _gp_dir.at(2) += delta_y;
 //            if (abs(delta_z) >= 0.0001) _gp_dir.at(1) += delta_z;
+        }
+        if (_do_log) {
+            _log_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+            _log_timestamps.emplace_back(this_evt.sensor_timestamp);
         }
         last_evt = this_evt;
     } else {
@@ -205,6 +211,14 @@ void CCartroller::draw() {
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
+
+    ImGui::BeginDisabled(_do_log);
+    if(ImGui::Button("Start log")) _do_log = true;
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!_do_log);
+    if(ImGui::Button("Stop")) _do_log = true;
+    ImGui::EndDisabled();
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::End();
