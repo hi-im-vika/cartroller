@@ -173,6 +173,47 @@ void CCartroller::update() {
 }
 
 void CCartroller::draw() {
+    // poll and handle events
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
+        switch (event.type) {
+            case SDL_EVENT_QUIT:
+                spdlog::info("Quit");
+                _do_exit = true;
+                break;
+            case SDL_EVENT_GAMEPAD_ADDED:
+                spdlog::info("Gamepad added");
+                _gp = SDL_OpenGamepad(event.gdevice.which);
+                break;
+            case SDL_EVENT_GAMEPAD_REMOVED:
+                spdlog::info("Gamepad removed");
+                if (SDL_GetGamepadFromID(event.gdevice.which)) {
+                    SDL_CloseGamepad(SDL_GetGamepadFromID(event.gdevice.which));
+                }
+                break;
+            case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
+                if (event.gsensor.sensor == SDL_SENSOR_GYRO) {
+                    _gyro_vals = {event.gsensor.data[0], event.gsensor.data[1], event.gsensor.data[2]};
+                    _gyro_evts.emplace(event.gsensor);
+                }
+                if (event.gsensor.sensor == SDL_SENSOR_ACCEL) {
+                    _accl_vals = {event.gsensor.data[0], event.gsensor.data[1], event.gsensor.data[2]};
+                    _accl_evts.emplace(event.gsensor);
+                }
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+            case SDL_EVENT_GAMEPAD_BUTTON_UP:
+            case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+            default:
+                break;
+        }
+    }
+
+    // don't do anything if window minimized
+    if (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) {
+        std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(10));
+        return;
+    }
 
     // ogl
     Uint32 current = SDL_GetTicks();
@@ -180,13 +221,6 @@ void CCartroller::draw() {
     SDL_GetWindowSize(_window, &w, &h);
     glViewport(0, 0, w, h);
 
-    SDL_Event event;
-    while(SDL_PollEvent(&event)){
-        ImGui_ImplSDL3_ProcessEvent(&event);
-        if(event.type == SDL_EVENT_QUIT) {
-            exit(0);
-        }
-    }
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     float dT = (current - _last_update / 1000.0f);
