@@ -325,13 +325,17 @@ void CCartroller::draw() {
             SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL,true);
     }
 
-    ImGui::Text("Gyro X: %+.5f", _gyro_vals.at(0));
-    ImGui::Text("Gyro Y: %+.5f", _gyro_vals.at(1));
-    ImGui::Text("Gyro Z: %+.5f", _gyro_vals.at(2));
+    ImGui::Text("Gyro X: %+.5f rad/s", _gyro_vals.at(0));
+    ImGui::Text("Gyro Y: %+.5f rad/s", _gyro_vals.at(1));
+    ImGui::Text("Gyro Z: %+.5f rad/s", _gyro_vals.at(2));
 
-    ImGui::Text("Accl X: %+.5f", _accl_vals.at(0));
-    ImGui::Text("Accl Y: %+.5f", _accl_vals.at(1));
-    ImGui::Text("Accl Z: %+.5f", _accl_vals.at(2));
+    ImGui::Text("Accl X: %+.5f m/s^2", _accl_vals.at(0));
+    ImGui::Text("Accl Y: %+.5f m/s^2", _accl_vals.at(1));
+    ImGui::Text("Accl Z: %+.5f m/s^2", _accl_vals.at(2));
+
+    ImGui::Text("Angl X: %+.5f rad", _last_ori[0]);
+    ImGui::Text("Angl Y: %+.5f rad", _last_ori[1]);
+    ImGui::Text("Angl Z: %+.5f rad", _last_ori[2]);
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
