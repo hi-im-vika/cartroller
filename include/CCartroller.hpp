@@ -55,6 +55,8 @@ private:
 
     std::vector<double> _gyro_vals;
     std::vector<double> _accl_vals;
+    std::deque<std::vector<double>> _gyro_n;
+    std::deque<std::vector<double>> _accl_n;
     std::queue<SDL_GamepadSensorEvent> _gyro_evts;
     std::queue<SDL_GamepadSensorEvent> _accl_evts;
     std::vector<std::vector<double>> _log_gyro_values;

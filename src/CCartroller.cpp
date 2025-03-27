@@ -131,6 +131,8 @@ void CCartroller::update() {
     if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
         SDL_GamepadSensorEvent this_evt = _gyro_evts.front();
         _gyro_evts.pop();
+        if(_gyro_n.size() > 2) _gyro_n.pop_back();
+        _gyro_n.emplace_front(std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1], this_evt.data[2]});
         if (_do_log) {
             _log_gyro_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
             _log_gyro_timestamps.emplace_back(this_evt.sensor_timestamp);
@@ -140,6 +142,8 @@ void CCartroller::update() {
     // if accl values exist
     if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
         SDL_GamepadSensorEvent this_evt = _accl_evts.front();
+        if(_accl_n.size() > 2) _accl_n.pop_back();
+        _accl_n.emplace_front(std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1], this_evt.data[2]});
         _accl_evts.pop();
         if (_do_log) {
             _log_accl_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
