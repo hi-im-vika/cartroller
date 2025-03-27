@@ -17,7 +17,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenGL::GL)
 find_package(GLEW REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE GLEW::GLEW)
 
-# Or use the header-only version
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm-header-only)
 
