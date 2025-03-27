@@ -121,55 +121,55 @@ CCartroller::~CCartroller() {
 }
 
 void CCartroller::update() {
-//    // immediately skip update if no values available
-//    if (_gyro_evts.empty() || _accl_evts.empty()) {
-//        std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
-//        return;
-//    }
-//
-//    // if gyro values exist
-//    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
-//        SDL_GamepadSensorEvent this_evt = _gyro_evts.front();
-//        _gyro_evts.pop();
-//        if (_do_log) {
-//            _log_gyro_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
-//            _log_gyro_timestamps.emplace_back(this_evt.sensor_timestamp);
-//        }
-//    }
-//
-//    // if accl values exist
-//    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
-//        SDL_GamepadSensorEvent this_evt = _accl_evts.front();
-//        _accl_evts.pop();
-//        if (_do_log) {
-//            _log_accl_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
-//            _log_accl_timestamps.emplace_back(this_evt.sensor_timestamp);
-//        }
-//    }
-//
-//    if (!_do_log) {
-//        if (!(_log_gyro_values.empty()) || !(_log_accl_values.empty())) {
-//            std::ofstream csv_out("data.csv");
-//            std::stringstream ss;
-//            for (int i = 0; i < _log_gyro_values.size(); i++) {
-//                ss.str(std::string());
-//                ss << _log_gyro_timestamps.at(i) << "," <<
-//                   _log_gyro_values.at(i).at(0) << "," <<
-//                   _log_gyro_values.at(i).at(1) << "," <<
-//                   _log_gyro_values.at(i).at(2) << "," <<
-//                   _log_accl_timestamps.at(i) << "," <<
-//                   _log_accl_values.at(i).at(0) << "," <<
-//                   _log_accl_values.at(i).at(1) << "," <<
-//                   _log_accl_values.at(i).at(2) << std::endl;
-//                csv_out << ss.str();
-//            }
-//            csv_out.close();
-//            _log_gyro_values.clear();
-//            _log_gyro_timestamps.clear();
-//            _log_accl_values.clear();
-//            _log_accl_timestamps.clear();
-//        }
-//    }
+    // immediately skip update if no values available
+    if (_gyro_evts.empty() || _accl_evts.empty()) {
+        std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
+        return;
+    }
+
+    // if gyro values exist
+    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
+        SDL_GamepadSensorEvent this_evt = _gyro_evts.front();
+        _gyro_evts.pop();
+        if (_do_log) {
+            _log_gyro_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+            _log_gyro_timestamps.emplace_back(this_evt.sensor_timestamp);
+        }
+    }
+
+    // if accl values exist
+    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
+        SDL_GamepadSensorEvent this_evt = _accl_evts.front();
+        _accl_evts.pop();
+        if (_do_log) {
+            _log_accl_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+            _log_accl_timestamps.emplace_back(this_evt.sensor_timestamp);
+        }
+    }
+
+    if (!_do_log) {
+        if (!(_log_gyro_values.empty()) || !(_log_accl_values.empty())) {
+            std::ofstream csv_out("data.csv");
+            std::stringstream ss;
+            for (int i = 0; i < _log_gyro_values.size(); i++) {
+                ss.str(std::string());
+                ss << _log_gyro_timestamps.at(i) << "," <<
+                   _log_gyro_values.at(i).at(0) << "," <<
+                   _log_gyro_values.at(i).at(1) << "," <<
+                   _log_gyro_values.at(i).at(2) << "," <<
+                   _log_accl_timestamps.at(i) << "," <<
+                   _log_accl_values.at(i).at(0) << "," <<
+                   _log_accl_values.at(i).at(1) << "," <<
+                   _log_accl_values.at(i).at(2) << std::endl;
+                csv_out << ss.str();
+            }
+            csv_out.close();
+            _log_gyro_values.clear();
+            _log_gyro_timestamps.clear();
+            _log_accl_values.clear();
+            _log_accl_timestamps.clear();
+        }
+    }
 }
 
 void CCartroller::draw() {
@@ -192,7 +192,7 @@ void CCartroller::draw() {
     float dT = (current - _last_update / 1000.0f);
 
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::rotate(model, glm::radians(50.0f)*dT, glm::vec3(0.5f, 1.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(0.5f)*dT, glm::vec3(0.5f, 1.0f, 0.0f));
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     glm::mat4 projection;
