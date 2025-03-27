@@ -12,7 +12,9 @@
 #define FOURCC_DXT5 0x35545844 // Equivalent to "DXT5" in ASCII
 
 #include <iostream>
+#include <sstream>
 #include <fstream>
+#include <queue>
 #include <spdlog/spdlog.h>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
