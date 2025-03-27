@@ -85,9 +85,8 @@ CCartroller::CCartroller() {
     _show_another_window = false;
 
     // Init some variables
-    _gp_vals = std::vector<double>(4);
-    _gp_sens = std::vector<double>(3);
-    _gp_dir = std::vector<double>(3);
+    _gyro_vals = std::vector<double>(3);
+    _accl_vals = std::vector<double>(3);
 
     _do_log = false;
 }
@@ -106,37 +105,54 @@ CCartroller::~CCartroller() {
 }
 
 void CCartroller::update() {
-//    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO)) {
-//        spdlog::info(SDL_GetGamepadSensorDataRate(_gp,SDL_SENSOR_GYRO));
-//        float data[3] = { 0.0f };
-//        if (SDL_GetGamepadSensorData(_gp,SDL_SENSOR_GYRO,data,3)) {
-//            _gp_sens = {data[0], data[1], data[2]};
-//        }
-//    }
-    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_sens_evts.empty())) {
-        static SDL_GamepadSensorEvent last_evt;
-        static SDL_GamepadSensorEvent this_evt;
-        this_evt = _sens_evts.front();
-        _sens_evts.pop();
-        auto delta_t = (double) (this_evt.sensor_timestamp - last_evt.sensor_timestamp) * 1E-9;
-        if (delta_t != 0.0f) {
-            double delta_x = (this_evt.data[0] * delta_t);
-            double delta_y = (this_evt.data[2] * delta_t);
-            double delta_z = (this_evt.data[1] * delta_t);
-            _gp_dir.at(0) = delta_x;
-            _gp_dir.at(2) = delta_y;
-            _gp_dir.at(1) = delta_z;
-//            if (abs(delta_x) >= 0.0001) _gp_dir.at(0) += delta_x;
-//            if (abs(delta_y) >= 0.0001) _gp_dir.at(2) += delta_y;
-//            if (abs(delta_z) >= 0.0001) _gp_dir.at(1) += delta_z;
-        }
-        if (_do_log) {
-            _log_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
-            _log_timestamps.emplace_back(this_evt.sensor_timestamp);
-        }
-        last_evt = this_evt;
-    } else {
+    // immediately skip update if no values available
+    if (_gyro_evts.empty() || _accl_evts.empty()) {
         std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
+        return;
+    }
+
+    // if gyro values exist
+    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
+        SDL_GamepadSensorEvent this_evt = _gyro_evts.front();
+        _gyro_evts.pop();
+        if (_do_log) {
+            _log_gyro_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+            _log_gyro_timestamps.emplace_back(this_evt.sensor_timestamp);
+        }
+    }
+
+    // if accl values exist
+    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
+        SDL_GamepadSensorEvent this_evt = _accl_evts.front();
+        _accl_evts.pop();
+        if (_do_log) {
+            _log_accl_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+            _log_accl_timestamps.emplace_back(this_evt.sensor_timestamp);
+        }
+    }
+
+    if (!_do_log) {
+        if (!(_log_gyro_values.empty()) || !(_log_accl_values.empty())) {
+            std::ofstream csv_out("data.csv");
+            std::stringstream ss;
+            for (int i = 0; i < _log_gyro_values.size(); i++) {
+                ss.str(std::string());
+                ss << _log_gyro_timestamps.at(i) << "," <<
+                   _log_gyro_values.at(i).at(0) << "," <<
+                   _log_gyro_values.at(i).at(1) << "," <<
+                   _log_gyro_values.at(i).at(2) << "," <<
+                   _log_accl_timestamps.at(i) << "," <<
+                   _log_accl_values.at(i).at(0) << "," <<
+                   _log_accl_values.at(i).at(1) << "," <<
+                   _log_accl_values.at(i).at(2) << std::endl;
+                csv_out << ss.str();
+            }
+            csv_out.close();
+            _log_gyro_values.clear();
+            _log_gyro_timestamps.clear();
+            _log_accl_values.clear();
+            _log_accl_timestamps.clear();
+        }
     }
 }
 
@@ -162,9 +178,12 @@ void CCartroller::draw() {
                 break;
             case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
                 if (event.gsensor.sensor == SDL_SENSOR_GYRO) {
-                    _gp_sens = {event.gsensor.data[0],event.gsensor.data[1],event.gsensor.data[2]};
-                    _sens_evts.emplace(event.gsensor);
-//                    spdlog::info(event.gsensor.sensor_timestamp);
+                    _gyro_vals = {event.gsensor.data[0], event.gsensor.data[1], event.gsensor.data[2]};
+                    _gyro_evts.emplace(event.gsensor);
+                }
+                if (event.gsensor.sensor == SDL_SENSOR_ACCEL) {
+                    _accl_vals = {event.gsensor.data[0], event.gsensor.data[1], event.gsensor.data[2]};
+                    _accl_evts.emplace(event.gsensor);
                 }
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
@@ -196,18 +215,21 @@ void CCartroller::draw() {
     // control settings
     ImGui::SeparatorText("Controls");
 
+    // enable both gyro and accelerometer in controller
     if (_gp) {
         if (SDL_GamepadHasSensor(_gp,SDL_SENSOR_GYRO) && !SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO))
             SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_GYRO,true);
+        if (SDL_GamepadHasSensor(_gp,SDL_SENSOR_ACCEL) && !SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL))
+            SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL,true);
     }
 
-    ImGui::Text("Accel X: %+.5f", _gp_sens.at(0));
-    ImGui::Text("Accel Y: %+.5f", _gp_sens.at(2));
-    ImGui::Text("Accel Z: %+.5f", _gp_sens.at(1));
+    ImGui::Text("Gyro X: %+.5f", _gyro_vals.at(0));
+    ImGui::Text("Gyro Y: %+.5f", _gyro_vals.at(1));
+    ImGui::Text("Gyro Z: %+.5f", _gyro_vals.at(2));
 
-    ImGui::Text("Dir X: %+.5f", _gp_dir.at(0));
-    ImGui::Text("Dir Y: %+.5f", _gp_dir.at(2));
-    ImGui::Text("Dir Z: %+.5f", _gp_dir.at(1));
+    ImGui::Text("Accl X: %+.5f", _accl_vals.at(0));
+    ImGui::Text("Accl Y: %+.5f", _accl_vals.at(1));
+    ImGui::Text("Accl Z: %+.5f", _accl_vals.at(2));
 
     ImGui::Text("This is some useful text.");                   // Display some text (you can use a format strings too)
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
@@ -217,7 +239,7 @@ void CCartroller::draw() {
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!_do_log);
-    if(ImGui::Button("Stop")) _do_log = true;
+    if(ImGui::Button("Stop")) _do_log = false;
     ImGui::EndDisabled();
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

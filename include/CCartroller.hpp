@@ -7,6 +7,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
@@ -29,12 +30,14 @@ private:
     // control
     SDL_Gamepad* _gp;
 
-    std::vector<double> _gp_vals;
-    std::vector<double> _gp_sens;
-    std::vector<double> _gp_dir;
-    std::queue<SDL_GamepadSensorEvent> _sens_evts;
-    std::vector<std::vector<double>> _log_values;
-    std::vector<u_int64_t> _log_timestamps;
+    std::vector<double> _gyro_vals;
+    std::vector<double> _accl_vals;
+    std::queue<SDL_GamepadSensorEvent> _gyro_evts;
+    std::queue<SDL_GamepadSensorEvent> _accl_evts;
+    std::vector<std::vector<double>> _log_gyro_values;
+    std::vector<std::vector<double>> _log_accl_values;
+    std::vector<u_int64_t> _log_gyro_timestamps;
+    std::vector<u_int64_t> _log_accl_timestamps;
     bool _do_log;
 
     // imgui
