@@ -6,9 +6,18 @@
 
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL
+#define FOURCC_DXT1 0x31545844 // Equivalent to "DXT1" in ASCII
+#define FOURCC_DXT3 0x33545844 // Equivalent to "DXT3" in ASCII
+#define FOURCC_DXT5 0x35545844 // Equivalent to "DXT5" in ASCII
+
 #include <iostream>
 #include <fstream>
 #include <spdlog/spdlog.h>
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
@@ -20,12 +29,24 @@
 #endif
 
 #include "CBase.hpp"
+#include "Mesh.hpp"
 
 class CCartroller : public CBase {
 private:
     // SDL
     SDL_Window* _window;
     SDL_GLContext _gl_context;
+
+    // OpenGL
+    GLuint _VAO, _VBO, _uv_buf;
+    GLuint _program_id, _matrix_id, _view_matrix_id, _model_matrix_id;
+    GLuint _texture;
+    GLuint _texture_id;
+
+    glm::vec3 _orientation;
+    glm::vec3 _position;
+    Mesh _cube;
+    Uint32 _last_update;
 
     // control
     SDL_Gamepad* _gp;
@@ -46,6 +67,15 @@ private:
 
     std::string _text;
     unsigned int _count;
+
+    GLuint load_shaders(const char *vertex_file_path, const char *fragment_file_path);
+    GLuint load_dds(const char *imagepath);
+    bool load_obj(
+            const char * path,
+            std::vector<glm::vec3> & out_vertices,
+            std::vector<glm::vec2> & out_uvs,
+            std::vector<glm::vec3> & out_normals
+    );
 public:
     CCartroller();
     ~CCartroller();

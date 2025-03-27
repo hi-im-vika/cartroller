@@ -9,5 +9,11 @@
   }, {
     "name" : "opengl",
     "version>=" : "2022-12-04#3"
+  }, {
+    "name" : "glm",
+    "version>=" : "1.0.1#3"
+  }, {
+    "name" : "glew",
+    "version>=" : "2.2.0#6"
   } ]
 }
