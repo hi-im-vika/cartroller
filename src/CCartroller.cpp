@@ -234,10 +234,10 @@ void CCartroller::draw() {
 
     // if sensor new sensor data
     if (_gyro_n.size() >= 2 || _accl_n.size() >= 2) {
-        if (_demo_rotate) {
-            _demo_rotate = false;
-            _last_ori = {0.0f, 0.0f, 0.0f};
-        }
+//        if (_demo_rotate) {
+//            _demo_rotate = false;
+//            _last_ori = {0.0f, 0.0f, 0.0f};
+//        }
         // get values
         std::vector<double> gyro_now = {_gyro_n.at(0).at(1), _gyro_n.at(0).at(2), _gyro_n.at(0).at(3)};
         std::vector<double> accl_now = {_accl_n.at(0).at(1), _accl_n.at(0).at(2), _accl_n.at(0).at(3)};
@@ -267,9 +267,9 @@ void CCartroller::draw() {
 
 //        auto qf = glm::quat(glm::vec3(_last_ori[0], _last_ori[1], _last_ori[2])); // quat
 
-        spdlog::info("gyro avel (rad/s): {:+.6f} {:+.6f} {:+.6f} delta_t {:.6f} s", fix_avel[0], fix_avel[1],
-                     fix_avel[2], delta_t);
-        spdlog::info("rot (rad): {:+.6f} {:+.6f} {:+.6f}", _last_ori[0], _last_ori[1], _last_ori[2]);
+//        spdlog::info("gyro avel (rad/s): {:+.6f} {:+.6f} {:+.6f} delta_t {:.6f} s", fix_avel[0], fix_avel[1],
+//                     fix_avel[2], delta_t);
+//        spdlog::info("rot (rad): {:+.6f} {:+.6f} {:+.6f}", _last_ori[0], _last_ori[1], _last_ori[2]);
         model = glm::rotate(model, -_last_ori[2], glm::vec3(0.0f, 0.0f, 1.0f));
         model = glm::rotate(model, -_last_ori[1], glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::rotate(model, _last_ori[0], glm::vec3(1.0f, 0.0f, 0.0f));
