@@ -50,6 +50,9 @@ private:
     Mesh _cube;
     Uint32 _last_update;
 
+    glm::vec3 _last_ori;
+    bool _demo_rotate;
+
     // control
     SDL_Gamepad* _gp;
 

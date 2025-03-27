@@ -79,6 +79,7 @@ CCartroller::CCartroller() {
 
     _cube.init();
     _last_update = SDL_GetTicks();
+    _last_ori = {0.0f, 0.0f, 0.0f};
 
     // ImGui setup here
     {
@@ -106,6 +107,7 @@ CCartroller::CCartroller() {
 
         _do_log = false;
     }
+    _demo_rotate = false;
 }
 
 CCartroller::~CCartroller() {
@@ -227,13 +229,61 @@ void CCartroller::draw() {
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    float dT = (current - _last_update / 1000.0f);
+//    float dT = (current - _last_update / 1000.0f);
+    auto model = glm::mat4(1.0f);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    // put quat here
-    model = glm::rotate(model, glm::radians(0.5f)*dT, glm::vec3(0.5f, 1.0f, 0.0f));
-    glm::mat4 view = glm::mat4(1.0f);
+    // if sensor new sensor data
+    if (_gyro_n.size() >= 2 || _accl_n.size() >= 2) {
+        if (_demo_rotate) {
+            _demo_rotate = false;
+            _last_ori = {0.0f, 0.0f, 0.0f};
+        }
+        // get values
+        std::vector<double> gyro_now = {_gyro_n.at(0).at(1), _gyro_n.at(0).at(2), _gyro_n.at(0).at(3)};
+        std::vector<double> accl_now = {_accl_n.at(0).at(1), _accl_n.at(0).at(2), _accl_n.at(0).at(3)};
+        auto delta_t = (float) ((_gyro_n.at(0).at(0) - _gyro_n.at(1).at(0)) * 1E-9);
+
+        // create correction matrix for rotation
+        double roll_rad = atan2(accl_now.at(1), accl_now.at(2));
+        double pitch_rad = atan2(-accl_now.at(0), sqrt(pow(accl_now.at(1), 2) + pow(accl_now.at(2), 2)));
+        double mat_roll[9] = {1, 0, 0,
+                              0, cos(roll_rad), -sin(roll_rad),
+                              0, sin(roll_rad), cos(roll_rad)
+        };
+        double mat_pitch[9] = {cos(pitch_rad), 0, sin(pitch_rad),
+                               0, 1, 0,
+                               -sin(pitch_rad), 0, cos(pitch_rad)
+        };
+        glm::mat3 R_roll = glm::transpose(glm::make_mat3(mat_roll));
+        glm::mat3 R_pitch = glm::transpose(glm::make_mat3(mat_pitch));
+        glm::mat3 R = R_pitch * R_roll;
+
+        // get column vector of uncorrected gyro values and multiply with correction matrix
+        glm::vec3 inst_avel = {gyro_now.at(0), gyro_now.at(1), gyro_now.at(2)};
+        glm::vec3 fix_avel = R * inst_avel;
+
+        // integrate angular velocity and add to previous position
+        _last_ori += fix_avel * delta_t;
+
+//        auto qf = glm::quat(glm::vec3(_last_ori[0], _last_ori[1], _last_ori[2])); // quat
+
+        spdlog::info("gyro avel (rad/s): {:+.6f} {:+.6f} {:+.6f} delta_t {:.6f} s", fix_avel[0], fix_avel[1],
+                     fix_avel[2], delta_t);
+        spdlog::info("rot (rad): {:+.6f} {:+.6f} {:+.6f}", _last_ori[0], _last_ori[1], _last_ori[2]);
+        model = glm::rotate(model, -_last_ori[2], glm::vec3(0.0f, 0.0f, 1.0f));
+        model = glm::rotate(model, -_last_ori[1], glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, _last_ori[0], glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+//    } else {
+//        auto qf = glm::quat(glm::vec3(0.0f, 0.0f, 1.0f));
+//        model = glm::rotate(model, glm::radians(0.1f)*dT, glm::vec3(qf.x, qf.y, qf.z));
+//    }
+
+
+    auto view = glm::mat4(1.0f);
+//    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    view = glm::rotate(view, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(60.0f), float(w)/(float)h, 0.1f, 100.0f);
 
@@ -294,6 +344,8 @@ void CCartroller::draw() {
     if(ImGui::Button("Stop")) _do_log = false;
     ImGui::EndDisabled();
 
+    if(ImGui::Button("Reset Orientation")) _last_ori = {0.0f, 0.0f, 0.0f};
+
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::End();
 
@@ -353,8 +405,6 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
         glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
         printf("%s\n", &VertexShaderErrorMessage[0]);
     }
-
-
 
     // Compile Fragment Shader
     printf("Compiling shader : %s\n", fragment_file_path);
