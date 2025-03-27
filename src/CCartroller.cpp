@@ -226,6 +226,7 @@ void CCartroller::draw() {
     float dT = (current - _last_update / 1000.0f);
 
     glm::mat4 model = glm::mat4(1.0f);
+    // put quat here
 //    model = glm::rotate(model, glm::radians(0.5f)*dT, glm::vec3(0.5f, 1.0f, 0.0f));
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
