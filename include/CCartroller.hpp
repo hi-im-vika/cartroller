@@ -48,7 +48,7 @@ private:
     glm::vec3 _orientation;
     glm::vec3 _position;
     Mesh _cube;
-    Uint32 _last_update;
+    unsigned long _last_update;
     glm::mat4 _last_model;
 
     glm::vec3 _last_ori;
@@ -65,8 +65,8 @@ private:
     std::queue<SDL_GamepadSensorEvent> _accl_evts;
     std::vector<std::vector<double>> _log_gyro_values;
     std::vector<std::vector<double>> _log_accl_values;
-    std::vector<u_int64_t> _log_gyro_timestamps;
-    std::vector<u_int64_t> _log_accl_timestamps;
+    std::vector<unsigned long long> _log_gyro_timestamps;
+    std::vector<unsigned long long> _log_accl_timestamps;
     bool _do_log;
 
     // imgui
