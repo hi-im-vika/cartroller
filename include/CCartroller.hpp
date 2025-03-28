@@ -49,6 +49,7 @@ private:
     glm::vec3 _position;
     Mesh _cube;
     Uint32 _last_update;
+    glm::mat4 _last_model;
 
     glm::vec3 _last_ori;
     bool _demo_rotate;

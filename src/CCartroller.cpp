@@ -80,6 +80,7 @@ CCartroller::CCartroller() {
     _cube.init();
     _last_update = SDL_GetTicks();
     _last_ori = {0.0f, 0.0f, 0.0f};
+    _last_model = glm::mat4(1.0f);
 
     // ImGui setup here
     {
@@ -130,11 +131,13 @@ void CCartroller::update() {
     }
 
     // if gyro values exist
-    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
+    if (_gp && SDL_GamepadSensorEnabled(_gp, SDL_SENSOR_GYRO) && !(_gyro_evts.empty())) {
         SDL_GamepadSensorEvent this_evt = _gyro_evts.front();
         _gyro_evts.pop();
-        if(_gyro_n.size() > 2) _gyro_n.pop_back();
-        _gyro_n.emplace_front(std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+        if (_gyro_n.size() > 2) _gyro_n.pop_back();
+        _gyro_n.emplace_front(
+                std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1],
+                                    this_evt.data[2]});
         if (_do_log) {
             _log_gyro_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
             _log_gyro_timestamps.emplace_back(this_evt.sensor_timestamp);
@@ -142,10 +145,12 @@ void CCartroller::update() {
     }
 
     // if accl values exist
-    if (_gp && SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
+    if (_gp && SDL_GamepadSensorEnabled(_gp, SDL_SENSOR_ACCEL) && !(_accl_vals.empty())) {
         SDL_GamepadSensorEvent this_evt = _accl_evts.front();
-        if(_accl_n.size() > 2) _accl_n.pop_back();
-        _accl_n.emplace_front(std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1], this_evt.data[2]});
+        if (_accl_n.size() > 2) _accl_n.pop_back();
+        _accl_n.emplace_front(
+                std::vector<double>{(double) this_evt.sensor_timestamp, this_evt.data[0], this_evt.data[1],
+                                    this_evt.data[2]});
         _accl_evts.pop();
         if (_do_log) {
             _log_accl_values.emplace_back(std::vector<double>{this_evt.data[0], this_evt.data[1], this_evt.data[2]});
@@ -208,6 +213,9 @@ void CCartroller::draw() {
                     _accl_evts.emplace(event.gsensor);
                 }
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
+                    _last_model = glm::mat4(1.0f);
+                }
             case SDL_EVENT_GAMEPAD_BUTTON_UP:
             case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             default:
@@ -222,7 +230,7 @@ void CCartroller::draw() {
     }
 
     // ogl
-    Uint32 current = SDL_GetTicks();
+//    Uint32 current = SDL_GetTicks();
     int w, h;
     SDL_GetWindowSize(_window, &w, &h);
     glViewport(0, 0, w, h);
@@ -239,53 +247,21 @@ void CCartroller::draw() {
 //            _last_ori = {0.0f, 0.0f, 0.0f};
 //        }
         // get values
-        std::vector<double> gyro_now = {_gyro_n.at(0).at(1), _gyro_n.at(0).at(2), _gyro_n.at(0).at(3)};
-        std::vector<double> accl_now = {_accl_n.at(0).at(1), _accl_n.at(0).at(2), _accl_n.at(0).at(3)};
+        glm::vec3 gyro_now = {_gyro_n.at(0).at(1), _gyro_n.at(0).at(2), _gyro_n.at(0).at(3)};
+        glm::vec3 accl_now = {_accl_n.at(0).at(1), _accl_n.at(0).at(2), _accl_n.at(0).at(3)};
+        // crashes here?? might need mutex
         auto delta_t = (float) ((_gyro_n.at(0).at(0) - _gyro_n.at(1).at(0)) * 1E-9);
 
-        // create correction matrix for rotation
-        double roll_rad = atan2(accl_now.at(1), accl_now.at(2));
-        double pitch_rad = atan2(-accl_now.at(0), sqrt(pow(accl_now.at(1), 2) + pow(accl_now.at(2), 2)));
-        double mat_roll[9] = {1, 0, 0,
-                              0, cos(roll_rad), -sin(roll_rad),
-                              0, sin(roll_rad), cos(roll_rad)
-        };
-        double mat_pitch[9] = {cos(pitch_rad), 0, sin(pitch_rad),
-                               0, 1, 0,
-                               -sin(pitch_rad), 0, cos(pitch_rad)
-        };
-        glm::mat3 R_roll = glm::transpose(glm::make_mat3(mat_roll));
-        glm::mat3 R_pitch = glm::transpose(glm::make_mat3(mat_pitch));
-        glm::mat3 R = R_pitch * R_roll;
-
-        // get column vector of uncorrected gyro values and multiply with correction matrix
-        glm::vec3 inst_avel = {gyro_now.at(0), gyro_now.at(1), gyro_now.at(2)};
-        glm::vec3 fix_avel = R * inst_avel;
-
-        // integrate angular velocity and add to previous position
-        _last_ori += fix_avel * delta_t;
-
-//        auto qf = glm::quat(glm::vec3(_last_ori[0], _last_ori[1], _last_ori[2])); // quat
-
-//        spdlog::info("gyro avel (rad/s): {:+.6f} {:+.6f} {:+.6f} delta_t {:.6f} s", fix_avel[0], fix_avel[1],
-//                     fix_avel[2], delta_t);
-//        spdlog::info("rot (rad): {:+.6f} {:+.6f} {:+.6f}", _last_ori[0], _last_ori[1], _last_ori[2]);
-        model = glm::rotate(model, -_last_ori[2], glm::vec3(0.0f, 0.0f, 1.0f));
-        model = glm::rotate(model, -_last_ori[1], glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, _last_ori[0], glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::vec3 quat_axis = glm::normalize(gyro_now);
+        double quat_mag = glm::length(gyro_now) * delta_t;
+        model = _last_model * glm::rotate(model, (float) quat_mag, quat_axis);
+        _last_model = model;
     }
-//    } else {
-//        auto qf = glm::quat(glm::vec3(0.0f, 0.0f, 1.0f));
-//        model = glm::rotate(model, glm::radians(0.1f)*dT, glm::vec3(qf.x, qf.y, qf.z));
-//    }
-
 
     auto view = glm::mat4(1.0f);
-//    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    view = glm::rotate(view, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(60.0f), float(w)/(float)h, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(60.0f), float(w) / (float) h, 0.1f, 100.0f);
 
     int modelLoc = glGetUniformLocation(_program_id, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -305,24 +281,25 @@ void CCartroller::draw() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
-    ImGui::DockSpaceOverViewport(0,nullptr,ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
     ImGuiIO &io = ImGui::GetIO();
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (_show_demo_window) ImGui::ShowDemoWindow(&_show_demo_window);
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-    ImGui::Begin("Hello, world!");                              // Create a window called "Hello, world!" and append into it.
+    ImGui::Begin(
+            "Hello, world!");                              // Create a window called "Hello, world!" and append into it.
 
     // control settings
     ImGui::SeparatorText("Controls");
 
     // enable both gyro and accelerometer in controller
     if (_gp) {
-        if (SDL_GamepadHasSensor(_gp,SDL_SENSOR_GYRO) && !SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_GYRO))
-            SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_GYRO,true);
-        if (SDL_GamepadHasSensor(_gp,SDL_SENSOR_ACCEL) && !SDL_GamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL))
-            SDL_SetGamepadSensorEnabled(_gp,SDL_SENSOR_ACCEL,true);
+        if (SDL_GamepadHasSensor(_gp, SDL_SENSOR_GYRO) && !SDL_GamepadSensorEnabled(_gp, SDL_SENSOR_GYRO))
+            SDL_SetGamepadSensorEnabled(_gp, SDL_SENSOR_GYRO, true);
+        if (SDL_GamepadHasSensor(_gp, SDL_SENSOR_ACCEL) && !SDL_GamepadSensorEnabled(_gp, SDL_SENSOR_ACCEL))
+            SDL_SetGamepadSensorEnabled(_gp, SDL_SENSOR_ACCEL, true);
     }
 
     ImGui::Text("Gyro X: %+.5f rad/s", _gyro_vals.at(0));
@@ -341,14 +318,14 @@ void CCartroller::draw() {
     ImGui::Checkbox("Demo Window", &_show_demo_window);         // Edit bools storing our window open/close state
 
     ImGui::BeginDisabled(_do_log);
-    if(ImGui::Button("Start log")) _do_log = true;
+    if (ImGui::Button("Start log")) _do_log = true;
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!_do_log);
-    if(ImGui::Button("Stop")) _do_log = false;
+    if (ImGui::Button("Stop")) _do_log = false;
     ImGui::EndDisabled();
 
-    if(ImGui::Button("Reset Orientation")) _last_ori = {0.0f, 0.0f, 0.0f};
+    if (ImGui::Button("Reset Orientation")) _last_ori = {0.0f, 0.0f, 0.0f};
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::End();
@@ -361,7 +338,7 @@ void CCartroller::draw() {
 //    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::microseconds(1000));
 }
 
-GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * fragment_file_path){
+GLuint CCartroller::load_shaders(const char *vertex_file_path, const char *fragment_file_path) {
 
     // Create the shaders
     GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -370,13 +347,14 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
     // Read the Vertex Shader code from the file
     std::string VertexShaderCode;
     std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-    if(VertexShaderStream.is_open()){
+    if (VertexShaderStream.is_open()) {
         std::stringstream sstr;
         sstr << VertexShaderStream.rdbuf();
         VertexShaderCode = sstr.str();
         VertexShaderStream.close();
-    }else{
-        printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+    } else {
+        printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n",
+               vertex_file_path);
         getchar();
         return 0;
     }
@@ -384,7 +362,7 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
     // Read the Fragment Shader code from the file
     std::string FragmentShaderCode;
     std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-    if(FragmentShaderStream.is_open()){
+    if (FragmentShaderStream.is_open()) {
         std::stringstream sstr;
         sstr << FragmentShaderStream.rdbuf();
         FragmentShaderCode = sstr.str();
@@ -397,30 +375,30 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
 
     // Compile Vertex Shader
     printf("Compiling shader : %s\n", vertex_file_path);
-    char const * VertexSourcePointer = VertexShaderCode.c_str();
-    glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+    char const *VertexSourcePointer = VertexShaderCode.c_str();
+    glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
     glCompileShader(VertexShaderID);
 
     // Check Vertex Shader
     glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
     glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ){
-        std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+    if (InfoLogLength > 0) {
+        std::vector<char> VertexShaderErrorMessage(InfoLogLength + 1);
         glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
         printf("%s\n", &VertexShaderErrorMessage[0]);
     }
 
     // Compile Fragment Shader
     printf("Compiling shader : %s\n", fragment_file_path);
-    char const * FragmentSourcePointer = FragmentShaderCode.c_str();
-    glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+    char const *FragmentSourcePointer = FragmentShaderCode.c_str();
+    glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
     glCompileShader(FragmentShaderID);
 
     // Check Fragment Shader
     glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
     glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ){
-        std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+    if (InfoLogLength > 0) {
+        std::vector<char> FragmentShaderErrorMessage(InfoLogLength + 1);
         glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
         printf("%s\n", &FragmentShaderErrorMessage[0]);
     }
@@ -437,8 +415,8 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
     // Check the program
     glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
     glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ){
-        std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+    if (InfoLogLength > 0) {
+        std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
         glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
         printf("%s\n", &ProgramErrorMessage[0]);
     }
@@ -453,7 +431,7 @@ GLuint CCartroller::load_shaders(const char * vertex_file_path,const char * frag
     return ProgramID;
 }
 
-GLuint CCartroller::load_dds(const char * imagepath){
+GLuint CCartroller::load_dds(const char *imagepath) {
 
     unsigned char header[124];
 
@@ -461,8 +439,9 @@ GLuint CCartroller::load_dds(const char * imagepath){
 
     /* try to open the file */
     fp = fopen(imagepath, "rb");
-    if (fp == NULL){
-        printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath); getchar();
+    if (fp == NULL) {
+        printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
+        getchar();
         return 0;
     }
 
@@ -477,26 +456,25 @@ GLuint CCartroller::load_dds(const char * imagepath){
     /* get the surface desc */
     fread(&header, 124, 1, fp);
 
-    unsigned int height      = *(unsigned int*)&(header[8 ]);
-    unsigned int width	     = *(unsigned int*)&(header[12]);
-    unsigned int linearSize	 = *(unsigned int*)&(header[16]);
-    unsigned int mipMapCount = *(unsigned int*)&(header[24]);
-    unsigned int fourCC      = *(unsigned int*)&(header[80]);
+    unsigned int height = *(unsigned int *) &(header[8]);
+    unsigned int width = *(unsigned int *) &(header[12]);
+    unsigned int linearSize = *(unsigned int *) &(header[16]);
+    unsigned int mipMapCount = *(unsigned int *) &(header[24]);
+    unsigned int fourCC = *(unsigned int *) &(header[80]);
 
 
-    unsigned char * buffer;
+    unsigned char *buffer;
     unsigned int bufsize;
     /* how big is it going to be including all mipmaps? */
     bufsize = mipMapCount > 1 ? linearSize * 2 : linearSize;
-    buffer = (unsigned char*)malloc(bufsize * sizeof(unsigned char));
+    buffer = (unsigned char *) malloc(bufsize * sizeof(unsigned char));
     fread(buffer, 1, bufsize, fp);
     /* close the file pointer */
     fclose(fp);
 
-    unsigned int components  = (fourCC == FOURCC_DXT1) ? 3 : 4;
+    unsigned int components = (fourCC == FOURCC_DXT1) ? 3 : 4;
     unsigned int format;
-    switch(fourCC)
-    {
+    switch (fourCC) {
         case FOURCC_DXT1:
             format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
             break;
@@ -517,25 +495,24 @@ GLuint CCartroller::load_dds(const char * imagepath){
 
     // "Bind" the newly created texture : all future texture functions will modify this texture
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
     unsigned int offset = 0;
 
     /* load the mipmaps */
-    for (unsigned int level = 0; level < mipMapCount && (width || height); ++level)
-    {
-        unsigned int size = ((width+3)/4)*((height+3)/4)*blockSize;
+    for (unsigned int level = 0; level < mipMapCount && (width || height); ++level) {
+        unsigned int size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
         glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height,
                                0, size, buffer + offset);
 
         offset += size;
-        width  /= 2;
+        width /= 2;
         height /= 2;
 
         // Deal with Non-Power-Of-Two textures. This code is not included in the webpage to reduce clutter.
-        if(width < 1) width = 1;
-        if(height < 1) height = 1;
+        if (width < 1) width = 1;
+        if (height < 1) height = 1;
 
     }
 
@@ -547,11 +524,11 @@ GLuint CCartroller::load_dds(const char * imagepath){
 }
 
 bool CCartroller::load_obj(
-        const char * path,
-        std::vector<glm::vec3> & out_vertices,
-        std::vector<glm::vec2> & out_uvs,
-        std::vector<glm::vec3> & out_normals
-){
+        const char *path,
+        std::vector<glm::vec3> &out_vertices,
+        std::vector<glm::vec2> &out_uvs,
+        std::vector<glm::vec3> &out_normals
+) {
     printf("Loading OBJ file %s...\n", path);
 
     std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
@@ -560,14 +537,14 @@ bool CCartroller::load_obj(
     std::vector<glm::vec3> temp_normals;
 
 
-    FILE * file = fopen(path, "r");
-    if( file == NULL ){
+    FILE *file = fopen(path, "r");
+    if (file == NULL) {
         printf("Impossible to open the file ! Are you in the right path ? See Tutorial 1 for details\n");
         getchar();
         return false;
     }
 
-    while( 1 ){
+    while (1) {
 
         char lineHeader[128];
         // read the first word of the line
@@ -577,24 +554,26 @@ bool CCartroller::load_obj(
 
         // else : parse lineHeader
 
-        if ( strcmp( lineHeader, "v" ) == 0 ){
+        if (strcmp(lineHeader, "v") == 0) {
             glm::vec3 vertex;
-            fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z );
+            fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
             temp_vertices.push_back(vertex);
-        }else if ( strcmp( lineHeader, "vt" ) == 0 ){
+        } else if (strcmp(lineHeader, "vt") == 0) {
             glm::vec2 uv;
-            fscanf(file, "%f %f\n", &uv.x, &uv.y );
+            fscanf(file, "%f %f\n", &uv.x, &uv.y);
             uv.y = -uv.y; // Invert V coordinate since we will only use DDS texture, which are inverted. Remove if you want to use TGA or BMP loaders.
             temp_uvs.push_back(uv);
-        }else if ( strcmp( lineHeader, "vn" ) == 0 ){
+        } else if (strcmp(lineHeader, "vn") == 0) {
             glm::vec3 normal;
-            fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z );
+            fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
             temp_normals.push_back(normal);
-        }else if ( strcmp( lineHeader, "f" ) == 0 ){
+        } else if (strcmp(lineHeader, "f") == 0) {
             std::string vertex1, vertex2, vertex3;
             unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
-            int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2] );
-            if (matches != 9){
+            int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0],
+                                 &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2],
+                                 &normalIndex[2]);
+            if (matches != 9) {
                 printf("File can't be read by our simple parser :-( Try exporting with other options\n");
                 fclose(file);
                 return false;
@@ -602,13 +581,13 @@ bool CCartroller::load_obj(
             vertexIndices.push_back(vertexIndex[0]);
             vertexIndices.push_back(vertexIndex[1]);
             vertexIndices.push_back(vertexIndex[2]);
-            uvIndices    .push_back(uvIndex[0]);
-            uvIndices    .push_back(uvIndex[1]);
-            uvIndices    .push_back(uvIndex[2]);
+            uvIndices.push_back(uvIndex[0]);
+            uvIndices.push_back(uvIndex[1]);
+            uvIndices.push_back(uvIndex[2]);
             normalIndices.push_back(normalIndex[0]);
             normalIndices.push_back(normalIndex[1]);
             normalIndices.push_back(normalIndex[2]);
-        }else{
+        } else {
             // Probably a comment, eat up the rest of the line
             char stupidBuffer[1000];
             fgets(stupidBuffer, 1000, file);
@@ -617,7 +596,7 @@ bool CCartroller::load_obj(
     }
 
     // For each vertex of each triangle
-    for( unsigned int i=0; i<vertexIndices.size(); i++ ){
+    for (unsigned int i = 0; i < vertexIndices.size(); i++) {
 
         // Get the indices of its attributes
         unsigned int vertexIndex = vertexIndices[i];
@@ -625,14 +604,14 @@ bool CCartroller::load_obj(
         unsigned int normalIndex = normalIndices[i];
 
         // Get the attributes thanks to the index
-        glm::vec3 vertex = temp_vertices[ vertexIndex-1 ];
-        glm::vec2 uv = temp_uvs[ uvIndex-1 ];
-        glm::vec3 normal = temp_normals[ normalIndex-1 ];
+        glm::vec3 vertex = temp_vertices[vertexIndex - 1];
+        glm::vec2 uv = temp_uvs[uvIndex - 1];
+        glm::vec3 normal = temp_normals[normalIndex - 1];
 
         // Put the attributes in buffers
         out_vertices.push_back(vertex);
-        out_uvs     .push_back(uv);
-        out_normals .push_back(normal);
+        out_uvs.push_back(uv);
+        out_normals.push_back(normal);
 
     }
     fclose(file);
